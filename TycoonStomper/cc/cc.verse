@@ -19,7 +19,7 @@ log<public>:=class<concrete>():
     @editable var EXPIRAMENTAL_DEBUG:logic=false
     Superlog<public>(I:string)<transacts>:void={if(EXPIRAMENTAL_DEBUG?){Print("{I}")}}
 
-
+#abc
 money_league<public>:=class<final>():
     #The amount per second being generated for each id
     var PerSecond<public>:[int]int = map{}

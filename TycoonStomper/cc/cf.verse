@@ -2,6 +2,7 @@ using { /Verse.org/Random }
 using { /Fortnite.com/Devices }
 using { /Verse.org/Simulation }
 using { /UnrealEngine.com/Temporary/SpatialMath }
+using { /Verse.org/Native }
 using {Purchaseables}
 using {Runtimeinstantiables}
 using {Stomper}
@@ -103,7 +104,10 @@ RemoveMoney<public>(Base:base, Player:player, GrantID:int, Amount:int)<transacts
 
 
 GetRebirthAmount<public>(Base:base, Rebirths:int, Amount:int)<decides><transacts>:int=
-    return Round[(Pow(Base.Base_Setup.RebirthCashMultiplier, Rebirths*1.0) * Amount)]
+    return Round[(Pow(Base.Base_Setup.RebirthConfig.RebirthCashMultiplier, Rebirths*1.0) * Amount)]
+
+GetRebirthCostAmount<public>(Base:base, Rebirths:int)<decides><transacts>:int=
+    return Round[(Pow(Base.Base_Setup.RebirthConfig.RebirthCostMultiplier, Rebirths*1.0) * Base.Base_Setup.RebirthConfig.RebirthCost)]
 
 GrantXP<public>(Base:base, Player:player, Amount:int)<transacts>:void={}
     
@@ -247,9 +251,17 @@ DecimalTrunc(value:float, decimals:int):string=
 
 
 
-GetStringParmaters<public>(S:string, ParamList:StringReturnables)<transacts><decides>:string=
+GetStringParmaters<public>(MaybeP:?player, S:string, ParamList:StringReturnables)<transacts><decides>:string=
         var CurrentString : string = S
-        CurrentParams := ParamList.GetStringParams()
+        var CurrentParams : [string]string = map{}
+        if:
+            P := MaybeP?
+        then:
+            Print("Had Player")
+            MyParams := ParamList.GetStringParams(option{P})
+            set CurrentParams = MyParams
+        else:
+            set CurrentParams = ParamList.GetStringParams(false)
         S.Length >= 1
         loop:
             if:
@@ -263,10 +275,14 @@ GetStringParmaters<public>(S:string, ParamList:StringReturnables)<transacts><dec
                     FinalString := RemovedDex.Insert[Sdex, FoundValue]
                 then:
                     set CurrentString = FinalString
+                else if:
+                    RemovedDex := CurrentString.Remove[Sdex, Edex+1]
+                    set CurrentString = RemovedDex
                 else:
                     break
             else:
                 break
+        
         return CurrentString
 
 
@@ -286,3 +302,17 @@ Parent<public>(Type:[]purchaseable):[]SuperInaugurable=
         E:Type
     do:
         E.PoorsMansInit()
+
+MergeStringMaps<public>(Map1:[string]string, Map2:[string]string)<transacts>:[string]string=
+    var ReturnMap : [string]string = map{}
+    for:
+        Key -> Value:Map1
+    do{if. set ReturnMap[Key] = Value}
+
+    for:
+        Key -> Value:Map2
+    do{if. set ReturnMap[Key] = Value}
+
+        
+
+    ReturnMap

@@ -224,13 +224,12 @@ base_setup<public>:=class<concrete>(Inaugurable, RuntimeInaugurable):
     @editable var BaseClaimer <public> : unique_buy_zone = unique_buy_zone{}
     @editable var PersistCurrencies <public> : logic = true
     @editable var PersistUnlocks<public>: logic = true
-    @editable var RebirthButton <public>: button_device = button_device{}
-    @editable var RebirthCashMultiplier<public> : float = 1.5
     @editable var DecimalTruncation <public> : ?int = option{1}
     @editable var VFX <public>: vfx_main = vfx_main{}
     @editable var SFX <public>: sfx_main = sfx_main{}
-    @editable var HudConfig <public> : hud_main = hud_main{}
+    @editable var HudConfig <public> : hud_main = hud_main{OnFailedMessage := option{"Failed to claim base [FailureReason]"}; OnSuccessMessage := option{"Successfully claimed base [Name]"}}
     @editable var BillBoardConfig <public> : billboard_main = billboard_main{}
+    @editable var RebirthConfig <public> : rebirth_main = rebirth_main{}
 
 
 
@@ -238,62 +237,124 @@ base_setup<public>:=class<concrete>(Inaugurable, RuntimeInaugurable):
         Print("Base_Setup OnBegin")
         BaseClaimer.Initialize(Base, true)
         BillBoardConfig.OnBegin(-1)
+        RebirthConfig.RebirthButton.Disable()
+        HudConfig.Initialize(Base)
         VFX.OnBegin(IX)
         SFX.OnBegin(IX)
-
 
     Initialize<override>(Base:base):void=
         BillBoardConfig.Initialize(Base)
         VFX.Initialize(Base)
         SFX.Initialize(Base)
+        HudConfig.Initialize(Base)
+        Print("INITIED BASE SETUP")
+        RebirthConfig.Initialize(Base)
 
+rebirth_main<public>:=class<concrete>(Inaugurable, PlayerSpecificStringReturnables):
+    @editable var RebirthButton <public>: button_device = button_device{}
+    @editable var RebirthCashMultiplier<public> : float = 1.5
+
+    @editable var RebirthCost <public> : float = 1000.0
+    @editable var RebirthCostCurrencyID <public> : int = 0
+    @editable var RebirthCostMultiplier <public> : float = 1.5
+    @editable var HudConfig <public> : hud_main = hud_main{OnFailedMessage := option{"Failed to rebirth you need [RebirthAmountNeeded]"}; OnSuccessMessage := option{"You have rebirthed! Every 100 now = [RebirthCashMultiplier]"}}
+
+
+    var MaybeOwner : ?base = false
+
+    Initialize<override>(Base:base):void=
+        set MaybeOwner = option{Base}
+        HudConfig.Initialize(Self)
+        RebirthButton.Enable()
+
+    GetStringParams<override>(P:?player)<transacts>:[string]string=
+        var default : [string]string =  map
+        {
+            "[RebirthCashMultiplier]"=>"{RebirthCashMultiplier}", 
+            "[RebirthCost]"=>"{RebirthCost}",
+            "[RebirthCostCurrencyID]"=>"{RebirthCostCurrencyID}",
+            "[RebirthCostMultiplier]"=>"{RebirthCostMultiplier}"
+        }
+        if:
+            Player := P?
+            Owner := MaybeOwner?
+            PlayerStats := GetStats[Player]
+            Rebirths := PlayerStats.Rebirths
+            RebirthCurrencyValue := PlayerStats.AssociatedCurrencies[Owner.Base_Setup.RebirthConfig.RebirthCostCurrencyID]
+            RebirthCostAmount := GetRebirthCostAmount[Owner, Rebirths]
+            RebirthMultiple := GetRebirthAmount[Owner, Rebirths, 100]
+        then:
+            if:
+                set default["[RebirthAmountNeeded]"] = "{RebirthCostAmount-RebirthCurrencyValue}"
+                set default["[RebirthCashMultiplier]"] = "{RebirthMultiple}"
+            then:
+                Print("Multiple is {RebirthMultiple}")
+
+        return default
+
+    
 #The base class that all purchaseables inherit from
-hud_main<public>:=class<concrete>():
+hud_main<public>:=class<concrete>(StringInaugurable):
     @editable var HudMessageDevice : hud_message_device = hud_message_device{}
-    @editable var OnSuccessMessage : ?string = option{""}
-    @editable var OnFailedMessage : ?string = option{""}
+    @editable var OnSuccessMessage <public>: ?string = option{""}
+    @editable var OnFailedMessage <public> : ?string = option{""}
+
+    var MaybeOwner : ?StringReturnables = false
 
     #Disaplys a message to all players when X thing is successful
     OnSuccess<public>(Base:base):void=
         if:
             Message := OnSuccessMessage?
+            Owner := MaybeOwner?
+            
         then:
             for:
                 Player : Base.Players
+                StringedValue := GetStringParmaters[option{Player}, Message, Owner]
             do:
-                HudMessageDevice.StringShow(Message, Player)
+                HudMessageDevice.StringShow(StringedValue, Player)
         else:
-            GlobalSuperlog("No on purchased message is set.")
+            GlobalSuperlog("No on OnSuccess message is set. [Code:HUM-001]")
     
     #Displays a message to all players when X thing fails
     OnFail<public>(Base:base):void=
         if:
             Message := OnFailedMessage?
+            Owner := MaybeOwner?
         then:
             for:
                 Player : Base.Players
+                StringedValue := GetStringParmaters[option{Player}, Message, Owner]
             do:
-                HudMessageDevice.StringShow(Message, Player)
+                HudMessageDevice.StringShow(StringedValue, Player)
         else:
-            GlobalSuperlog("No on failed purchased message is set.")
+            GlobalSuperlog("No on failed purchased message is set. [Code:HUM-002]")
 
     #Displays a message to a specific player when X thing is successful
     OnSuccessfullPlayer<public>(Player:player):void=
         if:
             Message := OnSuccessMessage?
+            Owner := MaybeOwner?
+            StringedValue := GetStringParmaters[option{Player}, Message, Owner]
         then:
-            HudMessageDevice.StringShow(Message, Player)
+            Print("Stringed Value is {StringedValue} |")
+            HudMessageDevice.StringShow(StringedValue, Player)
         else:
-            GlobalSuperlog("No on purchased message is set.")
+            GlobalSuperlog("No on OnSuccess message is set. [Code:HMP-001]")
 
     #Displays a message to a specific player when X thing fails
     OnFailurePlayer<public>(Player:player):void=
         if:
             Message := OnFailedMessage?
+            Owner := MaybeOwner?
+            StringedValue := GetStringParmaters[option{Player}, Message, Owner]
+            Print("Stringed Value is {StringedValue}")
         then:
-            HudMessageDevice.StringShow(Message, Player)
+            HudMessageDevice.StringShow(StringedValue, Player)
         else:
-            GlobalSuperlog("No on failed purchased message is set.")
+            GlobalSuperlog("No on failed purchased message is set. [Code:HMP-002]")
+
+    Initialize<override>(Owner:StringReturnables):void={set MaybeOwner = option{Owner}}
 
     
         
@@ -380,7 +441,7 @@ billboard_main<public>:=class<concrete>(LogicalVisibility, Runtime, StringInaugu
     Instantiate<public>():void=
         if:
             Owner := MaybeOwner?
-            BillboardStringedValue := GetStringParmaters[BillboardText, Owner]
+            BillboardStringedValue := GetStringParmaters[false, BillboardText, Owner]
         then:
             BillboardDevice.SetText(S2M(BillboardStringedValue)); Show()
         else:

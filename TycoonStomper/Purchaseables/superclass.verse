@@ -102,7 +102,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
     @editable var TempTogglePropsWhenNotEnough : []creative_prop = array{}
     # Hides these props when the player does not have enough money to purchase the item  [the player doesnt need to actually purchase the item]
     
-    @editable var  HudConfig : hud_main = hud_main{}
+    @editable var  HudConfig : hud_main = hud_main{OnFailedMessage := option{"You need [MoneyNeeded] more to purchase [Name]"}; OnSuccessMessage := option{"Succsessfully Purchased [Name]"}}
     # The HUD configuration for the item
 
     @editable var BillboardConfig : billboard_main = billboard_main{}
@@ -141,6 +141,13 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             HideProps(PropsToShow)
             spawn{ShowProps(PropsToHide)}
             RebirthedEvent.Signal()
+        if:
+            StartAs = Dependency.Unlocked
+        then:
+            InitializeChildren(Owner, MyIndex)
+        else:
+            GlobalSuperlog("{Name} is locked. Not initializing children... --->> Awaiting until unlocked.")
+            HidePropsWNE()
 
     #Prints the item's details
     Detail<override>(Type:string)<transacts>:void=
@@ -153,6 +160,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
         SFX.OnBegin(-1)
         BillboardConfig.OnBegin(-1)
         BillboardConfig.Initialize(Self)
+        HudConfig.Initialize(Self)
         HideProps(PropsToInitialize)
         set InitialStatus = StartAs
         set MyIndex = I
@@ -259,7 +267,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
     InitializeFX<override>():void=
         VFX.Initialize(Owner)  
     
-    GetStringParams<override>()<transacts>:[string]string=
+    GetStringParams<override>(MaybeP:?player)<transacts>:[string]string=
         var default : [string]string =  map
         {
             "[Name]"=>Name, 
@@ -275,6 +283,13 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
         if:
             MaybeGrantInterval := GrantInterval?
             set default["[GrantInterval]"] = "{MaybeGrantInterval}"
+        if:
+            Player := MaybeP?
+            MoneyNeeded := Price - GetStats[Player].AssociatedCurrencies[CurrencyToSpendID]
+            set default["[MoneyNeeded]"] = "{MoneyNeeded}"
+
+            
+        
         return default
 
         
@@ -467,19 +482,28 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
    
     #Awaiting the player to enter the purchase zone. 
     AwaitAttemptedPurchase(PZ:unique_buy_zone, Hostess:base)<suspends>:void=
-        loop:
-            PreventInf();
-            Agent := Purchase_Zone.PlayerEntersEvent.Await()
-            if:
-                TestAndCommitPurchase[Agent]
-                Player := player[Agent]
-                IsPurchased = PurchasedStatus.NotPurchased
-            then:
-                GrantMoney(Owner, Player, CurrencyToReceiveID, GrantAmount, BypassZone)
-                OnBought(Player)
-                FirstBought(Player)
+        race:
+            block:
+                loop:
+                    PreventInf();
+                    Agent := Purchase_Zone.PlayerEntersEvent.Await()
+                    if:
+                        TestAndCommitPurchase[Agent]
+                        Player := player[Agent]
+                        IsPurchased = PurchasedStatus.NotPurchased
+                    then:
+                        GrantMoney(Owner, Player, CurrencyToReceiveID, GrantAmount, BypassZone)
+                        OnBought(Player)
+                        FirstBought(Player)
 
-            else{Purchase_Zone.Enable();  HudConfig.OnFail(Owner); Print("Failed to purchase {Name}");}
+                    else if:
+                        Player := player[Agent]
+                    then:
+                        Purchase_Zone.Enable(); 
+                        HudConfig.OnFailurePlayer(Player)
+            block:
+                RebirthedEvent.Await()
+            
 
     #Runs after the item is bought
     OnBought<public>(Agent:agent):void=
@@ -505,6 +529,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             spawn{ManageHost()};  BegunHosting.Signal()
             VFX.OnEvent(Player)
             SFX.OnEvent(Player)
+            BillboardConfig.Hide()
             
             
             
@@ -514,7 +539,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             Player := player[Agent]
         then:
             OnPurchaseCinematic.Play(Player)
-            HudConfig.OnSuccess(Owner)
+            HudConfig.OnSuccessfullPlayer(Player)
             Print("|==|----[{Name} ]----|==|")
             Print("|==|----[ Successfully Purchased ]----|==|")
 

@@ -39,9 +39,16 @@ PurchaseableType  <public> := enum<persistable>:
     DanceFloor
     Pet
 
+ClaimFauilreReason <public> := enum:
+    TooManyPlayers
+    AlreadyOwnsBase
 
 
-# BE RIGHT BACK
+(Status:ClaimFauilreReason).ToStr<public>()<transacts>:string=
+    case(Status):
+        ClaimFauilreReason.TooManyPlayers => return "This base is already claimed by other player(s)"
+
+        ClaimFauilreReason.AlreadyOwnsBase => return "You Already Own A Base"
 
 
 (Status:PurchaseableType).ToStr<public>()<transacts>:string=

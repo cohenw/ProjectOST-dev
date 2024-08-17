@@ -37,7 +37,11 @@ StringInaugurable<public>:=interface():
 
 StringReturnables<public>:=interface():
     
-    GetStringParams<public>()<transacts>:[string]string
+    GetStringParams<public>(P:?player)<transacts>:[string]string
+
+PlayerSpecificStringReturnables<public>:=interface(StringReturnables):
+    
+
 
 Toggleable<public>:=interface():
     Enable<public>():void

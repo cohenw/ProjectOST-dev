@@ -41,8 +41,7 @@ currency_ui<public>:=class():
                 PerSecond := owner.MoneyLeague.PerSecond[ParsedID]
             then:
                 ActiveHud.SetText(S2M("{Emoji} {PerSecond.GetTrunc(owner)} / sec")) 
-            else:
-                GlobalSuperlog("Currently not updating all currencies /s rev rotations | \n Likely 1 or more currencies have no Purchaseables with GrantIntervals linked ")
+            
             if(X = TotalPS){set X = 0}
             else{set X += 1}
             

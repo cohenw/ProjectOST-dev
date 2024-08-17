@@ -9,8 +9,6 @@ using {Stomper}
 #Defines what a 'Team' is and how it functions.
 base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringReturnables):
 
-    var Name:string = ""
-
     var UniqueID:string = ""
 
     var selfindex:int = -1
@@ -28,7 +26,7 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
 
     var MoneyGranted : event(tuple(player, int, int)) = event(tuple(player, int, int)){}
 
-
+    var CFR : ClaimFauilreReason = ClaimFauilreReason.TooManyPlayers
 
     #The volume device that is used to claim the base.
     @editable var Base_Setup : base_setup = base_setup{}
@@ -124,10 +122,11 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
     OnBegin<override>(IX:int):void=
         Base_Setup.OnBegin(Self, -1)
         Initialize(Self, IX)
+
         
 
     #Waits for a player to enter the base and attempts to claim it.
-    AwaitBaseClaim()<suspends>:void=
+    AwaitBaseClaim(IX:int)<suspends>:void=
         Print("== {Base_Setup.Name} Successfully Initialized ==")
         loop:
             PreventInf();
@@ -150,7 +149,8 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
                 Owner.SL.Superlog("Player has {PlayerStats.Rebirths} Rebirths")
                 
                 for(Collectable:Collectables){Collectable.Show(Self)}
-                Base_Setup.HudConfig.OnSuccess(Self)
+                Base_Setup.HudConfig.Initialize(Self)
+                Base_Setup.HudConfig.OnSuccessfullPlayer(Player)
                 UI := currency_ui{Player:=Player,  Configs:=UIConfig, owner:=Self}
                 UI.Create()
                 spawn{AwaitUIDestroy(UI)}
@@ -178,9 +178,23 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
                 
 
                     
-            else:
-                Base_Setup.HudConfig.OnFail(Self)
-                Print("Base is already claimed or size limit was reached (Status: [== Claimed ==]")
+            else if:
+                Player := player[Agent]
+            then:
+                if:
+                    not AttemptClaimBase[Player]
+                then:
+                    set CFR = ClaimFauilreReason.TooManyPlayers
+                else if:
+                    TempStats := Owner.GetPlayerStats[Player]
+                    not TempStats.ClaimBase[]
+                then:
+                    set CFR = ClaimFauilreReason.AlreadyOwnsBase
+
+
+                
+                Base_Setup.HudConfig.OnFailurePlayer(Player)
+                Print("Base is already claimed or size limit was reached (Status: [== {CFR.ToStr()} ==]")
             
 
             
@@ -208,18 +222,24 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
 
     AwaitRebirth()<suspends>:void=
     {
+        Base_Setup.RebirthConfig.HudConfig.Initialize(Self)
         loop:
-            Interactor := Base_Setup.RebirthButton.InteractedWithEvent.Await()
+            Interactor := Base_Setup.RebirthConfig.RebirthButton.InteractedWithEvent.Await()
             if:
                 Player := player[Interactor]
+                PlayerStats := GetStats[Player]
+                Rebirths := PlayerStats.Rebirths
+                RebirthCurrencyValue := PlayerStats.AssociatedCurrencies[Base_Setup.RebirthConfig.RebirthCostCurrencyID]
+                RebirthCostAmount := GetRebirthCostAmount[Self, Rebirths]
+                RebirthCurrencyValue >= RebirthCostAmount
             then:
                 Rebirthed.Signal(Player)
-            OnRebirth()
-
+                OnRebirth()
+            else if:
+                Player := player[Interactor]
+            then:
+                Base_Setup.RebirthConfig.HudConfig.OnFailurePlayer(Player)
             
-            var ShowButtons: []int = array{}
-
-            for(I  -> ShowButton:ShowButtons):
 
 
 
@@ -250,6 +270,7 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
         do:
             TempStats.OnRebirth()
             Rebirth(Player)
+            Base_Setup.RebirthConfig.HudConfig.OnSuccessfullPlayer(Player)
             set Players = Players.RemoveAllElements(Player)
             
         set Players = array{}
@@ -268,9 +289,8 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
         #Await for rebirths to be triggered.
         spawn{AwaitRebirth()}
 
-
-        #Await the base to be claimed.
-        spawn{AwaitBaseClaim()}
+        #Await for a player to enter the base and attempt to claim it.
+        spawn{AwaitBaseClaim(IX)}
 
         if(ID := CreateID[15]){set UniqueID = ID}
         Owner.SL.Superlog("Base ID is {UniqueID}")
@@ -337,15 +357,16 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
         }
 
 
-        GetStringParams<override>()<transacts>:[string]string=
+        GetStringParams<override>(P:?player)<transacts>:[string]string=
             return map
             {
-                "[Name]"=>Name, 
+                "[Name]"=>Base_Setup.Name, 
                 "[ID]"=>UniqueID, 
                 "[Players.Length]"=>"{Players.Length}", 
                 "SizeLimit"=>"{SizeLimit}", 
-                "[Status]"=>"{Status.ToStr()}"
-            }
+                "[Status]"=>"{Status.ToStr()}",
+                "[FailureReason]"=>"{CFR.ToStr()}"
+            }   
            
 
 

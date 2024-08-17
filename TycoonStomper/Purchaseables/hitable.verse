@@ -18,10 +18,30 @@ hitable_buyable<public>:=class<concrete><final>(fxpurchaseable):
         #Lists out all the properties of the item
         Detail("hitableBuyable")
 
+        if:
+            HC := hitableConfig.OverrideHudConfig?
+        then:
+            HC.Initialize(Self)
+
  
     OnRebirth<override>():void=
         (super:)OnRebirth()
-        
+
+    GetStringParams<override>(P:?player)<transacts>:[string]string=
+        var default : [string]string = (super:)GetStringParams(P)
+        if:
+            Player := P?
+            Rebirths := GetStats[Player].Rebirths
+            RebirthedOnHitGrantAmount := GetRebirthAmount[Owner, Rebirths, hitableConfig.OnHitGrantAmount]
+        then:
+            set default = MergeStringMaps(default, map{"[OnHitGrantAmount]" => "{RebirthedOnHitGrantAmount}"})
+        set default = MergeStringMaps(default, map{
+                "[CurrencyOnHitID]" => "{hitableConfig.CurrencyOnHitID}",
+                "[OnHitExperienceAmount]" => "{hitableConfig.OnHitExperienceAmount}"
+            })
+
+        return default
+
 
     #Host the Shoot
     Host<override>()<suspends>:void=
@@ -72,7 +92,7 @@ unique_hitable_buyable:=class<concrete>(Toggleable, Inaugurable):
     #Shooting range target device that will be hit
     @editable var  hitdetectors : []trigger_device = array{}
 
-    @editable var OverrideHudConfig : ?hud_main = option{hud_main{}}
+    @editable var OverrideHudConfig : ?hud_main = option{hud_main{OnFailedMessage := option{""}; OnSuccessMessage := option{"+[OnHitGrantAmount]"}}}
 
     OnHit : event(agent) = event(agent){}
 

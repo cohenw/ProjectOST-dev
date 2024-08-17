@@ -127,6 +127,7 @@ unique_buy_zone<public>:=class<concrete>(LogicalInaugurable, Toggleable):
     Initialize<override>(Base:base, altvalue:logic):void={
         #Re-enable the device if it was disabled
         set Status = LogicalStatus.Enabled
+        set Origin = Zone.GetTransform().Translation
 
         #if the device is not initialized; then, spawn the await enterance function
         if(not Initialized?)

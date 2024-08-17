@@ -238,7 +238,7 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
         for(I ->IDancefloors: DanceFloors){IDancefloors.OnRebirth()}
         for(I ->Pet: Pets){Pet.OnRebirth()}
         set Status = ClaimStatus.Unclaimed
-
+        Base_Setup.BaseClaimer.Show()
         set MoneyLeague = money_league{}
 
         for:

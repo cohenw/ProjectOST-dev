@@ -12,6 +12,7 @@ using {Runtimeinstantiables}
 #███████╗██║░╚███║╚██████╔╝██║░╚═╝░██║██████╔╝
 #╚══════╝╚═╝░░╚══╝░╚═════╝░╚═╝░░░░░╚═╝╚═════╝░
 AnimationStyle <public> := enum:
+    GroupedReverse
     Grouped
     LegoLike
     LegoLike5x
@@ -37,6 +38,11 @@ PurchaseableType  <public> := enum<persistable>:
     Hitable
     DanceFloor
     Pet
+
+
+
+# BE RIGHT BACK
+
 
 (Status:PurchaseableType).ToStr<public>()<transacts>:string=
     case(Status):

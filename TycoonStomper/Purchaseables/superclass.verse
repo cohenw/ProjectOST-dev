@@ -37,6 +37,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
     var BegunHosting : event() = event(){}
     var UnlockEvent <public> : event() = event(){}
     var StatusChange <public> : event() = event(){}
+    var RebirthedEvent <public> : event() = event(){}
 
     @editable var  Name <public>:  string = "My item name here"
     # The name of the item
@@ -135,9 +136,11 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             set CanLoad = true
             set IsPurchased = PurchasedStatus.NotPurchased
             Purchase_Zone.Enable()
+            Purchase_Zone.Show()
             HideProps(PropsToInitialize)
             HideProps(PropsToShow)
             spawn{ShowProps(PropsToHide)}
+            RebirthedEvent.Signal()
 
     #Prints the item's details
     Detail<override>(Type:string)<transacts>:void=
@@ -185,8 +188,12 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
         OnInitalized.Signal()
 
 
-
-
+    ManageHost()<suspends>:void=
+        race:
+            block:
+                Host()
+            block:
+                RebirthedEvent.Await()
     
     #Runs after the item is bought
     #This method is meant to be overridden by the child class
@@ -495,7 +502,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             if(Result(1)?){Print("When Unlocking all dependents, ({Result(0)}) failed to unlock")}
             spawn{OnGrantInterval(Agent)}
             spawn{ShowProps(PropsToInitialize+PropsToShow)}
-            spawn{Host()};  BegunHosting.Signal()
+            spawn{ManageHost()};  BegunHosting.Signal()
             VFX.OnEvent(Player)
             SFX.OnEvent(Player)
             
@@ -530,7 +537,10 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             PT := Prop.GetTransform().Translation
             PR := Prop.GetTransform().Rotation
             PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-GranualarDist}
-                if(Prop.TeleportTo[PL, PR]){}
+            PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+(GranualarDist*10.0)}
+                if(PurchaseAnimationStyle = AnimationStyle.GroupedReverse and Prop.TeleportTo[PLR, PR]){}
+                else if(Prop.TeleportTo[PL, PR]){}
+
         }
         return
     #Shows the props associated with the item
@@ -545,12 +555,17 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
                 PT := Prop.GetTransform().Translation
                 PR := Prop.GetTransform().Rotation
                 PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+GranualarDist}
+                PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-(GranualarDist*10.0)}
 
                 #Props are moved as if they were one solid object (Grouped)
                 #This results in a style similar to a whole object being placed.
 
 
                 case(PurchaseAnimationStyle):
+
+                    AnimationStyle.GroupedReverse =>
+                        spawn{SpawnedMovement(Prop, PLR, PR, GetSpeed(PurchaseAnimation))}
+
                     AnimationStyle.Grouped =>
                         spawn{SpawnedMovement(Prop, PL, PR, GetSpeed(PurchaseAnimation))}
                     

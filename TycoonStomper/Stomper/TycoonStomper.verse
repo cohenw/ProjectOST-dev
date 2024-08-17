@@ -27,20 +27,18 @@ tycoon_stomper <public> := class(creative_device):
 
     AsyncManageTempStats()<suspends>:void=
         Playspace := GetPlayspace()
-        for: 
-            Player:Playspace.GetPlayers() 
-            GiveTemporaryPlayerStats[Player]
-        do{Print("Granted player stats to all players in the game")}
-           
+        for{Player:Playspace.GetPlayers(); GiveTemporaryPlayerStats[Player]}
+        do{GlobalSuperlog("Granted player stats to all players in the game")}
         loop:
             race:
                 block:
                     Player := Playspace.PlayerAddedEvent().Await()
                     if. GiveTemporaryPlayerStats[Player]
-                    Print("Initialized player stats")
+                    GlobalSuperlog("Initialized player stats")
                 block:
                     Player := Playspace.PlayerRemovedEvent().Await()
                     if. RemoveTemporaryPlayerStats[Player]
+                    GlobalSuperlog("Removed player stats")
         
     GiveTemporaryPlayerStats(P:player)<transacts><decides>:void=
         not PlayerStatsMap[P]?

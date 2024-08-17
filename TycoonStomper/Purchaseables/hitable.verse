@@ -19,7 +19,10 @@ hitable_buyable<public>:=class<concrete><final>(fxpurchaseable):
         Detail("hitableBuyable")
 
  
+    OnRebirth<override>():void=
+        (super:)OnRebirth()
         
+
     #Host the Shoot
     Host<override>()<suspends>:void=
         hitableConfig.Enable()

@@ -280,17 +280,26 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
         #For every purchaseable type in the base, initialize them.
         #Im not doing a multi-line for loop because a for loop can fail if one of the arrays is empty.
         for(I -> ICurrency: Currencies){ICurrency.Initialize(Self)}
-        for(I ->IBasicProps: BasicProps){IBasicProps.Initialize(Self, I)}
-        for(I ->INPCSpawner: NPCSpawners){INPCSpawner.Initialize(Self, I)}
-        for(I ->IDropper: Droppers){IDropper.Initialize(Self, I)}
-        for(I ->IConveyor: Conveyors){IConveyor.Initialize(Self, I)}
         for(I ->ICollectable: Collectables){ICollectable.Initialize(Self)}
-        for(I ->IHitable: Hitables){IHitable.Initialize(Self, I)}
-        for(I ->IShootable: Shootables){IShootable.Initialize(Self, I)}
         for(I ->IGifts: Gifts){IGifts.Initialize(Self)}
         for(I ->IMoneywheel: MoneyWheel){IMoneywheel.Initialize(Self)}
-        for(I ->IDancefloors: DanceFloors){IDancefloors.Initialize(Self, I)}
-        for(I ->IPet: Pets){IPet.Initialize(Self, I)}
+
+
+        GroupedInitialize(Self, array{
+            Parent(BasicProps), 
+            Parent(NPCSpawners), 
+            Parent(Droppers), 
+            Parent(Conveyors), 
+            Parent(Hitables), 
+            Parent(Shootables), 
+            Parent(DanceFloors), 
+            Parent(Pets)
+            
+        }
+        )
+
+
+        
 
         
 

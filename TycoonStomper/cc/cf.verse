@@ -242,6 +242,10 @@ DecimalTrunc(value:float, decimals:int):string=
 
 
 
+# > > > > > Interface methods
+
+
+
 GetStringParmaters<public>(S:string, ParamList:StringReturnables)<transacts><decides>:string=
         var CurrentString : string = S
         CurrentParams := ParamList.GetStringParams()
@@ -265,6 +269,19 @@ GetStringParmaters<public>(S:string, ParamList:StringReturnables)<transacts><dec
         return CurrentString
 
 
+GroupedInitialize<public>(Base:base, Input:[][]SuperInaugurable):void=
+    for:
+        I -> E:Input
+    do:
+        for:
+            J -> F:E
+        do:
+            F.Initialize(Base, J)
+    return
 
 
-    
+Parent<public>(Type:[]purchaseable):[]SuperInaugurable=
+    for:
+        E:Type
+    do:
+        E.PoorsMansInit()

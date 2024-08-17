@@ -579,6 +579,8 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
         Prop.MoveTo(PL, PR, Speed)
     
         
+    PoorsMansInit<public>():SuperInaugurable=
+        Self
 
 #Example of how to create a purchasable item using the purchaseable superclass as a parent class. 
 #This class is a template for creating purchasable items in the game.

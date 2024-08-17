@@ -1,5 +1,19 @@
 using { /Verse.org/Simulation }
 using {cc}
+
+playerstats:=class<final><concrete><unique>(Rebirthable):
+
+    var HasClaimedBase : logic = false
+
+    OnRebirth<override>()<transacts>:void=
+        set HasClaimedBase = false
+
+    ClaimBase()<transacts><decides>:void=
+        not HasClaimedBase?
+        set HasClaimedBase = true
+
+
+
 #Defines the player profile data class and the map that stores it
 player_profile_data := class<final><persistable>:
     Version:int = 0

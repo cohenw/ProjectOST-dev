@@ -15,18 +15,29 @@ tycoon_stomper <public> := class(creative_device):
 
     #When the game starts, tell the bases to start / initialize
     OnBegin<override>()<suspends>:void=
+        spawn. AsyncManageTempStats()
         for(I -> Base:Bases):
-            Base.OnBegin(I)
-            set Base.Owner = Self
+            Base.OnBegin(I); set Base.Owner = Self
+            
 
+    GetPlayerStats<public>(P:player)<transacts><decides>:playerstats=
+        return PlayerStatsMap[P]?
+            
 
 
     AsyncManageTempStats()<suspends>:void=
         Playspace := GetPlayspace()
+        for: 
+            Player:Playspace.GetPlayers() 
+            GiveTemporaryPlayerStats[Player]
+        do{Print("Granted player stats to all players in the game")}
+           
+        loop:
             race:
                 block:
                     Player := Playspace.PlayerAddedEvent().Await()
                     if. GiveTemporaryPlayerStats[Player]
+                    Print("Initialized player stats")
                 block:
                     Player := Playspace.PlayerRemovedEvent().Await()
                     if. RemoveTemporaryPlayerStats[Player]

@@ -8,8 +8,9 @@ playerstats:=class<final><concrete><unique>(Rebirthable):
     OnRebirth<override>()<transacts>:void=
         set HasClaimedBase = false
 
-    ClaimBase()<transacts><decides>:void=
+    ClaimBase<public>()<transacts><decides>:void=
         not HasClaimedBase?
+        GlobalSuperlog("Claiming Base")
         set HasClaimedBase = true
 
 

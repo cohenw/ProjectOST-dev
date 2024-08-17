@@ -139,6 +139,8 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
                 AttemptClaimBase[Agent]
                 Status = ClaimStatus.Unclaimed
                 Player := player[Agent]
+                TempStats := Owner.GetPlayerStats[Player]
+                TempStats.ClaimBase[]
                 PlayerStats := GetStats[Player]
                 AssociatedUnlocks := PlayerStats.AssociatedUnlocks
             then:
@@ -243,8 +245,10 @@ base<public>:=class<concrete>(SuperInaugurable, Rebirthable, Runtime, StringRetu
             Player:Players
             DelidCurrencies[Player]
             DelidUnlocks[Player]
+            TempStats := Owner.GetPlayerStats[Player]
             
         do:
+            TempStats.OnRebirth()
             Rebirth(Player)
             set Players = Players.RemoveAllElements(Player)
             

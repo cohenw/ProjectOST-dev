@@ -112,8 +112,9 @@ GetRebirthCostAmount<public>(Base:base, Rebirths:int)<decides><transacts>:int=
 GrantXP<public>(Base:base, Player:player, Amount:int)<transacts>:void={}
     
 condition<public>:=struct<concrete>():
-    @editable MinCurrencyAmount: int = 0
-    @editable MinPlayerExperience: int = 0
+    @editable MinCurrencyAmount <public>: int = 0
+    @editable MinPlayerExperience <public>: int = 0
+    @editable MinRebirths <public> : int = 0
 
 GetConveyorConfig<public>(Base:base, ID:int)<decides><transacts>:unique_conveyor=
     {
@@ -139,9 +140,11 @@ MeetsConditions<public>(Condition:condition, Player:player, CurrencyID:int)<deci
         Stats := GetStats[Player]
         Money := Stats.AssociatedCurrencies[CurrencyID]
         Experience := Stats.Experience
+        Rebirths := Stats.Rebirths
 
         Money >= Condition.MinCurrencyAmount
         Experience >= Condition.MinPlayerExperience
+        Rebirths >= Condition.MinRebirths
         return
         
 

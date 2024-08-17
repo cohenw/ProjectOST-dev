@@ -420,7 +420,7 @@ billboard_main<public>:=class<concrete>(LogicalVisibility, Runtime, StringInaugu
     @editable var BillboardDevice <public> : billboard_device = billboard_device{}
 
     @editable var BillboardText <public> : string = {
-    "[Name] \n [Price]"}
+    "[Name] \n[Description] \nRebirthsNeeded: [RebirthsNeeded] \n$[Price]"}
 
     # @editable var OffsetAmount <public> : ?transform = option{transform{Translation := vector3{X:=0.0, Y:=0.0, Z:=0.0}, Scale := vector3{X:=1.0, Y:=1.0, Z:=1.0}}}
 

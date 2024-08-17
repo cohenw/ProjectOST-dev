@@ -278,15 +278,25 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             "[CurrencyToReceiveID]"=>"{CurrencyToReceiveID}", 
             "[GrantAmount]"=>"{GrantAmount}", 
             "[Ptype]"=>"{Ptype.ToStr()}", 
-            "[IsPurchased]"=>"{IsPurchased.ToStr()}"
+            "[IsPurchased]"=>"{IsPurchased.ToStr()}",
+            "[RebirthsNeeded]"=>"{ConditionsToBuy.MinRebirths}",
+            "[MinMoneyCondition]"=>{"{ConditionsToBuy.MinCurrencyAmount}"},
+            "[MinExperienceDontion]"=>"{ConditionsToBuy.MinPlayerExperience}"
         }
         if:
             MaybeGrantInterval := GrantInterval?
             set default["[GrantInterval]"] = "{MaybeGrantInterval}"
         if:
             Player := MaybeP?
-            MoneyNeeded := Price - GetStats[Player].AssociatedCurrencies[CurrencyToSpendID]
-            set default["[MoneyNeeded]"] = "{MoneyNeeded}"
+            Stats := GetStats[Player]
+        then:
+            if:
+                MoneyNeeded := Price - GetStats[Player].AssociatedCurrencies[CurrencyToSpendID]
+                set default["[MoneyNeeded]"] = "{MoneyNeeded}"
+            if:
+                RebirthsLeft := ConditionsToBuy.MinRebirths - Stats.Rebirths
+                set default["[RebirthsLeft]"] = "{RebirthsLeft}"
+
 
             
         

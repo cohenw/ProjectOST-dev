@@ -91,11 +91,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
     @editable var  PropsToHide : []creative_prop = array{}
     # The props to hide when the item is bought
 
-    @editable var TempTogglePropsWhenEnough : []creative_prop = array{}
-    # Shows these props when the player has enough money to purchase the item  [the player doesnt need to actually purchase the item]
-
-    @editable var TempTogglePropsWhenNotEnough : []creative_prop = array{}
-    # Hides these props when the player does not have enough money to purchase the item  [the player doesnt need to actually purchase the item]
+    @editable var PropsV2 : []TWC_unique_prop = array{}
 
     @editable var AnimationConfig : animation_main = animation_main{}
     # The animation configuration for the item
@@ -144,7 +140,6 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             InitializeChildren(Owner, MyIndex)
         else:
             GlobalSuperlog("{Name} is locked. Not initializing children... --->> Awaiting until unlocked.")
-            HidePropsWNE()
 
     #Prints the item's details
     Detail<override>(Type:string)<transacts>:void=
@@ -178,7 +173,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             InitializeChildren(Hostess, I)
         else:
             GlobalSuperlog("{Name} is locked. Not initializing children... --->> Awaiting until unlocked.")
-            HidePropsWNE()
+
 
 
             
@@ -206,33 +201,68 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
     Host<override>()<suspends>:void
 
 
-    ShowPropsWNE():void=
-        for{Prop:TempTogglePropsWhenNotEnough, Prop.IsValid[]}
-        do. Prop.Show()
-
-    HidePropsWNE():void=
-        for{Prop:TempTogglePropsWhenNotEnough, Prop.IsValid[]}
-        do. Prop.Hide()
-
-    ShowPropsWE():void=
-        for{Prop:TempTogglePropsWhenEnough, Prop.IsValid[]}
-        do. Prop.Show()
-
-    HidePropsWE():void=
-        for{Prop:TempTogglePropsWhenEnough, Prop.IsValid[]}
-        do. Prop.Hide()
-
-    #Runs before the item is bought. (In this particular instance it also cancels after the item is bought)
+    #Runs async before the item is bought.
     SubHost<override>()<suspends>:void=
+        spawn{ManagePrePurchaseProps()}
+
+                   
+
+           
+
+
+                        
+    ManagePrePurchaseProps<public>()<suspends>:void=
+        var PrePurchasePropsMap : [PropMovementType][]TWC_unique_prop = map{}
+
+        if:
+            set PrePurchasePropsMap[PropMovementType.Show_When_Enough] = array{TWC_unique_prop{}}
+            set PrePurchasePropsMap[PropMovementType.Hide_When_Enough] = array{TWC_unique_prop{}}
+            set PrePurchasePropsMap[PropMovementType.Show_When_Not_Enough] = array{TWC_unique_prop{}}
+            set PrePurchasePropsMap[PropMovementType.Hide_When_Not_Enough] = array{TWC_unique_prop{}}
+            set PrePurchasePropsMap[PropMovementType.Nothing] = array{TWC_unique_prop{}}
+        then:
+            Print("Initialized PrePurchasePropsMap")
+        else:
+            Print("Failed to initialize PrePurchasePropsMap")
+
+        for:
+            PrePurchaseProp:PropsV2
+        do:
+            case(PrePurchaseProp.Function):
+                PropMovementType.Show_When_Enough =>
+                    Print("Show when enough")
+                    if. set PrePurchasePropsMap[PropMovementType.Show_When_Enough] += array{PrePurchaseProp}
+                    then. Print("Added to show when enough")
+                    else. Print("Failed to add to show when enough")
+
+                PropMovementType.Hide_When_Enough =>
+                    if. set PrePurchasePropsMap[PropMovementType.Hide_When_Enough] += array{PrePurchaseProp}
+
+                PropMovementType.Show_When_Not_Enough =>
+                    if. set PrePurchasePropsMap[PropMovementType.Show_When_Not_Enough] += array{PrePurchaseProp}
+
+                PropMovementType.Hide_When_Not_Enough =>
+                    if. set PrePurchasePropsMap[PropMovementType.Hide_When_Not_Enough] += array{PrePurchaseProp}
+
+                PropMovementType.Nothing =>
+                    if. set PrePurchasePropsMap[PropMovementType.Nothing] += array{PrePurchaseProp}
         race:
             block: 
                 # Wait for the BegunHosting event to be signaled; meaning the prop was successfully purchased
                 BegunHosting.Await()
-
-                # Hide the props that should be hidden when the player doesn't have enough money; this is done overtime and disables collision
-                ShowPropsWNE
+                for:
+                     PrePurchaseProp:PropsV2
+                     PrePurchaseProp.HideOnPurchase?
+                     
+                do:
+                    PrePurchaseProp.Hide(AnimationConfig);
                 return
             block:
+                for:
+                     PrePurchaseProp:PropsV2
+                     PrePurchaseProp.HideByDefault?
+                do:
+                    PrePurchaseProp.Hide(AnimationConfig);
                 loop:
                     # Wait for the MoneyGranted event to be signaled and get the player and current currency value
                     Value := Owner.MoneyGranted.Await();
@@ -243,16 +273,28 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
                         # Check if the player has enough money to purchase the item
                         CurrentValue >= Price
                     then:
-                        # Insantly shows the props that should be shown when the player has enough money
-                        ShowPropsWE() 
-                        HidePropsWNE()
+                        Print("Has enough")
+                        # Show or hide the props based on the player's money
+                        for:
+                            PrePurchaseProp:PrePurchasePropsMap[PropMovementType.Show_When_Enough]
+                        do:
+                            Print("Showing")
+                            PrePurchaseProp.Show(AnimationConfig)
+                        for:
+                            PrePurchaseProp:PrePurchasePropsMap[PropMovementType.Hide_When_Enough]
+                        do:
+                            PrePurchaseProp.Hide(AnimationConfig)
                     else:
-                        # Insantly shows the props that should be shown when the player doesn't have enough money
-                        ShowPropsWNE()
-                        HidePropsWE()
-                            
-                        
-
+                        Print("Not enough")
+                        # Show or hide the props based on the player's money
+                        for:
+                            PrePurchaseProp:PrePurchasePropsMap[PropMovementType.Show_When_Not_Enough]
+                        do:
+                            PrePurchaseProp.Show(AnimationConfig)
+                        for:
+                            PrePurchaseProp:PrePurchasePropsMap[PropMovementType.Hide_When_Not_Enough]
+                        do:
+                            PrePurchaseProp.Hide(AnimationConfig)
                     
     #Intergral FX System methods
     InitalizeVisuals<override>():void=

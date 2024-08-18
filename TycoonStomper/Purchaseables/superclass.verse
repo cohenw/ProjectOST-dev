@@ -63,18 +63,6 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
     @editable var  GrantInterval : ?float = option{15.0}
     # The interval at which to grant the player the grant amount
 
-            
-    #Defines the prop's Z coord for every PAnimation type: which is where it will be held stationary.
-    # A positive value means the prop will start at -GranualarDist and move to +GranualarDist
-    # A negative value means the prop will start at +GranualarDist and move to -GranualarDist
-    # Using groupedReverse flips these values
-    @editable var GranualarDist: float = 1500.0
-    
-    @editable var  PurchaseAnimationStyle : AnimationStyle = AnimationStyle.Grouped
-    # The animation style for the purchase animation
-    
-    @editable var  PurchaseAnimation : PAnimation = PAnimation.FadeIn
-    # The specific purchase animation to use
     
     @editable var  StartAs <public> : Dependency = Dependency.Unlocked
     # The initial status of the item (locked or unlocked)
@@ -108,6 +96,9 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
 
     @editable var TempTogglePropsWhenNotEnough : []creative_prop = array{}
     # Hides these props when the player does not have enough money to purchase the item  [the player doesnt need to actually purchase the item]
+
+    @editable var AnimationConfig : animation_main = animation_main{}
+    # The animation configuration for the item
     
     @editable var  HudConfig : hud_main = hud_main{OnFailedMessage := option{"You need [MoneyNeeded] more to purchase [Name]"}; OnSuccessMessage := option{"Succsessfully Purchased [Name]"}}
     # The HUD configuration for the item
@@ -144,9 +135,8 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             set IsPurchased = PurchasedStatus.NotPurchased
             Purchase_Zone.Enable()
             Purchase_Zone.Show()
-            HideProps(PropsToInitialize)
-            HideProps(PropsToShow)
-            spawn{ShowProps(PropsToHide)}
+            AnimationConfig.HideProps(PropsToInitialize)
+            AnimationConfig.HideProps(PropsToShow)
             RebirthedEvent.Signal()
         if:
             StartAs = Dependency.Unlocked
@@ -168,7 +158,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
         BillboardConfig.OnBegin(-1)
         BillboardConfig.Initialize(Self)
         HudConfig.Initialize(Self)
-        HideProps(PropsToInitialize)
+        AnimationConfig.HideProps(PropsToInitialize)
         set InitialStatus = StartAs
         set MyIndex = I
         set Owner = Hostess
@@ -532,7 +522,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             Accolade.Award(Player)
             GrantXP(Owner, Player, ExperiencePointsToAdd)
             set IsPurchased = PurchasedStatus.Purchased
-            HideProps(PropsToHide)
+            AnimationConfig.HideProps(PropsToHide)
             
             Purchase_Zone.OnSuccess(Player, true)
             Purchase_Zone.Disable()
@@ -540,7 +530,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             Result := UnlockDependents(Owner)
             if(Result(1)?){Print("When Unlocking all dependents, ({Result(0)}) failed to unlock")}
             spawn{OnGrantInterval(Agent)}
-            spawn{ShowProps(PropsToInitialize+PropsToShow)}
+            spawn{AnimationConfig.ShowProps(PropsToInitialize+PropsToShow)}
             spawn{ManageHost()};  BegunHosting.Signal()
             VFX.OnEvent(Player)
             SFX.OnEvent(Player)
@@ -562,80 +552,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
 
 
 
-    #Defines the arguements for every PAnimation type
-    var PropAlterations:int=0
 
-    #Hides the props associated with the item
-    #The props are then moved to a location below the player with a specified animation speed
-    HideProps(PropsToAlter:[]creative_prop)<transacts>:void=
-        set PropAlterations -= 1
-        for(I -> Prop:PropsToAlter){
-        if:
-                Prop.IsValid[]
-        then:
-            Prop.Hide()
-            PT := Prop.GetTransform().Translation
-            PR := Prop.GetTransform().Rotation
-            PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-GranualarDist}
-            PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+(GranualarDist)}
-                if(PurchaseAnimationStyle = AnimationStyle.GroupedReverse and Prop.TeleportTo[PLR, PR]){}
-                else if(Prop.TeleportTo[PL, PR]){}
-
-        }
-        return
-    #Shows the props associated with the item
-    ShowProps(PropsToAlter:[]creative_prop)<suspends>:void=
-        set PropAlterations += 1
-        for(I -> Prop:PropsToAlter)
-        {
-            if:
-                Prop.IsValid[]
-            then:
-                Prop.Show()
-                PT := Prop.GetTransform().Translation
-                PR := Prop.GetTransform().Rotation
-                PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+GranualarDist}
-                PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-(GranualarDist)}
-
-                #Props are moved as if they were one solid object (Grouped)
-                #This results in a style similar to a whole object being placed.
-
-
-                case(PurchaseAnimationStyle):
-
-                    AnimationStyle.GroupedReverse =>
-                        spawn{SpawnedMovement(Prop, PLR, PR, GetSpeed(PurchaseAnimation))}
-
-                    AnimationStyle.Grouped =>
-                        spawn{SpawnedMovement(Prop, PL, PR, GetSpeed(PurchaseAnimation))}
-                    
-                    #Does the same as the grouped style but for each prop individually one by one 
-                    #This results in a style similar to legos being built
-
-                    AnimationStyle.LegoLike =>
-                        Prop.MoveTo(PL, PR, GetSpeed(PurchaseAnimation)/1.75)
-
-                    AnimationStyle.LegoLike5x =>
-                        Prop.MoveTo(PL, PR, GetSpeed(PurchaseAnimation)/7.0)
-
-                    AnimationStyle.none =>
-                        Prop.Hide();
-                        Prop.MoveTo(PL, PR, GetSpeed(PurchaseAnimation))
-                        Prop.Show()
-                        
-        }
-        return
-    GetSpeed(Anim:PAnimation):float=
-        case(Anim):
-            PAnimation.SlowFadeIn => 
-                return 1.25
-            PAnimation.FadeIn =>
-                return 1.0
-            PAnimation.FastFadeIn =>
-                return 0.75
-
-    SpawnedMovement(Prop:creative_prop, PL:vector3, PR:rotation, Speed:float)<suspends>:void=
-        Prop.MoveTo(PL, PR, Speed)
     
         
     PoorsMansInit<public>():SuperInaugurable=

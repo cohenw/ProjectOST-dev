@@ -447,5 +447,67 @@ billboard_main<public>:=class<concrete>(LogicalVisibility, Runtime, StringInaugu
         else:
             GlobalSuperlog("`Unknown` Owner | Failed to instantiate text as StringParameters could not be found in `Unknown` Owner")
     
-    
+animation_main<public>:=class<final><concrete>():
 
+    #Defines the prop's Z coord for every PAnimation type: which is where it will be held stationary.
+    # A negative value means the prop will start at -GranualarDist and move to +GranualarDist
+    # A positive value means the prop will start at +GranualarDist and move to -GranualarDist
+    # Using groupedReverse flips these values
+    @editable var GranualarDist <public>: float = + 1500.0
+    
+    @editable var  PurchaseAnimationStyle <public> : AnimationStyle = AnimationStyle.Grouped
+    # The animation style for the purchase animation
+    
+    @editable var  PurchaseAnimationSpeed <public> : float = 10.0
+    # The specific purchase animation to use
+
+
+        #Defines the arguements for every PAnimation type
+        var PropAlterations:int=0
+
+        #Hides the props associated with the item
+        #The props are then moved to a location below the player with a specified animation speed
+    HideProps<public>(PropsToAlter:[]creative_prop)<transacts>:void=
+            set PropAlterations -= 1
+            for(I -> Prop:PropsToAlter){
+            if:
+                    Prop.IsValid[]
+            then:
+                Prop.Hide()
+                PT := Prop.GetTransform().Translation
+                PR := Prop.GetTransform().Rotation
+                PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+GranualarDist}
+                if(Prop.TeleportTo[PL, PR]){}
+    
+            }
+            return
+        #Shows the props associated with the item
+    ShowProps<public>(PropsToAlter:[]creative_prop)<suspends>:void=
+            set PropAlterations += 1
+            for(I -> Prop:PropsToAlter)
+            {
+                if:
+                    Prop.IsValid[]
+                then:
+                    PT := Prop.GetTransform().Translation
+                    PR := Prop.GetTransform().Rotation
+                    PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-GranualarDist}
+    
+    
+                    case(PurchaseAnimationStyle):
+                        AnimationStyle.Grouped =>
+                            Prop.Show()
+                            spawn{Prop.MoveTo(PL, PR, 10.0/PurchaseAnimationSpeed)}
+
+    
+                        AnimationStyle.LegoLike =>
+                            Prop.Show()
+                            Prop.MoveTo(PL, PR, 10.0/PurchaseAnimationSpeed)
+    
+    
+                        AnimationStyle.none =>
+                            if. Prop.TeleportTo[PL, PR]
+                            Prop.Show()
+                            
+            }
+            return

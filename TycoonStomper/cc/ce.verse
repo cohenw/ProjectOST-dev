@@ -13,19 +13,13 @@ using {Runtimeinstantiables}
 #╚══════╝╚═╝░░╚══╝░╚═════╝░╚═╝░░░░░╚═╝╚═════╝░
 AnimationStyle <public> := enum:
     none
-    GroupedReverse
     Grouped
     LegoLike
-    LegoLike5x
     
 
 LogicalStatus  <public> := enum:
     Enabled
     Disabled
-PAnimation  <public> := enum:
-    SlowFadeIn
-    FadeIn
-    FastFadeIn
 Dependency  <public> := enum:
     Locked
     Unlocked

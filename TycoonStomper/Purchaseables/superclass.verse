@@ -62,6 +62,13 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
     
     @editable var  GrantInterval : ?float = option{15.0}
     # The interval at which to grant the player the grant amount
+
+            
+    #Defines the prop's Z coord for every PAnimation type: which is where it will be held stationary.
+    # A positive value means the prop will start at -GranualarDist and move to +GranualarDist
+    # A negative value means the prop will start at +GranualarDist and move to -GranualarDist
+    # Using groupedReverse flips these values
+    @editable var GranualarDist: float = 1500.0
     
     @editable var  PurchaseAnimationStyle : AnimationStyle = AnimationStyle.Grouped
     # The animation style for the purchase animation
@@ -486,9 +493,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
 
         
             
-        
-    #Defines the prop's Z coord for every PAnimation type: which is where it will be held stationary.
-    var GranualarDist: float = 1500.0
+
    
     #Awaiting the player to enter the purchase zone. 
     AwaitAttemptedPurchase(PZ:unique_buy_zone, Hostess:base)<suspends>:void=
@@ -572,7 +577,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
             PT := Prop.GetTransform().Translation
             PR := Prop.GetTransform().Rotation
             PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-GranualarDist}
-            PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+(GranualarDist*10.0)}
+            PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+(GranualarDist)}
                 if(PurchaseAnimationStyle = AnimationStyle.GroupedReverse and Prop.TeleportTo[PLR, PR]){}
                 else if(Prop.TeleportTo[PL, PR]){}
 
@@ -590,7 +595,7 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
                 PT := Prop.GetTransform().Translation
                 PR := Prop.GetTransform().Rotation
                 PL := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z+GranualarDist}
-                PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-(GranualarDist*10.0)}
+                PLR := vector3{X:=PT.X, Y:=PT.Y, Z:=PT.Z-(GranualarDist)}
 
                 #Props are moved as if they were one solid object (Grouped)
                 #This results in a style similar to a whole object being placed.
@@ -613,6 +618,10 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
                     AnimationStyle.LegoLike5x =>
                         Prop.MoveTo(PL, PR, GetSpeed(PurchaseAnimation)/7.0)
 
+                    AnimationStyle.none =>
+                        Prop.Hide();
+                        Prop.MoveTo(PL, PR, GetSpeed(PurchaseAnimation))
+                        Prop.Show()
                         
         }
         return

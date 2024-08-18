@@ -12,6 +12,7 @@ using {Runtimeinstantiables}
 #███████╗██║░╚███║╚██████╔╝██║░╚═╝░██║██████╔╝
 #╚══════╝╚═╝░░╚══╝░╚═════╝░╚═╝░░░░░╚═╝╚═════╝░
 AnimationStyle <public> := enum:
+    none
     GroupedReverse
     Grouped
     LegoLike

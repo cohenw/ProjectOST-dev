@@ -258,27 +258,36 @@ base_setup<public>:=class<concrete>(Inaugurable, RuntimeInaugurable):
         Print("INITIED BASE SETUP")
         RebirthConfig.Initialize(Base)
 
-TWC_unique_prop<public>:=class<unique><concrete>():
+TWC_unique_prop<public>:=class<unique><concrete>(Inaugurable):
 
     @editable var SetName <public> : string = "My Set Name Here"
 
-    @editable var Function <public> : PropMovementType = PropMovementType.Show_When_Enough
+    @editable var PrePurchaseFunction <public> : PropMovementType = PropMovementType.Nothing
 
-    @editable var Animates <public> : logic = false
+    @editable var OnPurchaseFunction <public> : PurchaseMovementType = PurchaseMovementType.Show
 
-    @editable var HideOnPurchase <public> : logic = true
+    @editable var Animates <public> : logic = true
 
-    @editable var HideByDefault <public> : logic = true
+    @editable var HideOnGameStart <public> : logic = true
 
     @editable var props <public>: []creative_prop = array{}
 
+    var Status: LogicalVisibilityStatus = LogicalVisibilityStatus.Hidden
 
+
+    Initialize<override>(Base:base):void=
+        if:
+            HideOnGameStart?
+        then:
+            set Status = LogicalVisibilityStatus.Hidden
 
     
     Hide<public>(Anim:animation_main):void=
         if:
             Animates?
+            Status = LogicalVisibilityStatus.Shown
         then:
+            set Status = LogicalVisibilityStatus.Hidden
             Anim.HideProps(props)
         else:
             for:
@@ -289,7 +298,9 @@ TWC_unique_prop<public>:=class<unique><concrete>():
     Show<public>(Anim:animation_main):void=
         if:
             Animates?
+            Status = LogicalVisibilityStatus.Hidden
         then:
+            set Status = LogicalVisibilityStatus.Shown
             spawn{Anim.ShowProps(props)}
         else:
             for:

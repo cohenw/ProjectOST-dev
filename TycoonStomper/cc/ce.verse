@@ -26,6 +26,9 @@ AnimationStyle <public> := enum:
     Grouped
     LegoLike
     
+LogicalVisibilityStatus <public> := enum:
+    Shown
+    Hidden
 
 LogicalStatus  <public> := enum:
     Enabled
@@ -50,6 +53,10 @@ PropMovementType  <public> := enum:
     Hide_When_Enough
     Show_When_Not_Enough
     Hide_When_Not_Enough
+PurchaseMovementType <public> := enum:
+    Nothing
+    Show
+    Hide
 
 ClaimFauilreReason <public> := enum:
     TooManyPlayers

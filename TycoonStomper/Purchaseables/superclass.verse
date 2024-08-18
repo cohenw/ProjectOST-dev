@@ -213,54 +213,76 @@ purchaseable<public>:=class<abstract>(Detailable, Hostable, SuperInaugurable, Re
                         
     ManagePrePurchaseProps<public>()<suspends>:void=
         var PrePurchasePropsMap : [PropMovementType][]TWC_unique_prop = map{}
+        var PostPurchasePropsMap : [PurchaseMovementType][]TWC_unique_prop = map{}
 
         if:
+            # Initialize the PrePurchasePropsMap
             set PrePurchasePropsMap[PropMovementType.Show_When_Enough] = array{TWC_unique_prop{}}
             set PrePurchasePropsMap[PropMovementType.Hide_When_Enough] = array{TWC_unique_prop{}}
             set PrePurchasePropsMap[PropMovementType.Show_When_Not_Enough] = array{TWC_unique_prop{}}
             set PrePurchasePropsMap[PropMovementType.Hide_When_Not_Enough] = array{TWC_unique_prop{}}
             set PrePurchasePropsMap[PropMovementType.Nothing] = array{TWC_unique_prop{}}
+
+            # Initialize the PostPurchasePropsMap
+            set PostPurchasePropsMap[PurchaseMovementType.Show] = array{TWC_unique_prop{}}
+            set PostPurchasePropsMap[PurchaseMovementType.Hide] = array{TWC_unique_prop{}}
+            set PostPurchasePropsMap[PurchaseMovementType.Nothing] = array{TWC_unique_prop{}}
         then:
-            Print("Initialized PrePurchasePropsMap")
+            Print("Initialized PrePurchasePropsMap & PostPurchasePropsMap")
         else:
-            Print("Failed to initialize PrePurchasePropsMap")
+            Print("Failed to initialize PrePurchasePropsMap & PostPurchasePropsMap")
 
         for:
-            PrePurchaseProp:PropsV2
+            PropGroup:PropsV2
         do:
-            case(PrePurchaseProp.Function):
+            PropGroup.Initialize(Owner)
+            case(PropGroup.PrePurchaseFunction):
                 PropMovementType.Show_When_Enough =>
                     Print("Show when enough")
-                    if. set PrePurchasePropsMap[PropMovementType.Show_When_Enough] += array{PrePurchaseProp}
+                    if. set PrePurchasePropsMap[PropMovementType.Show_When_Enough] += array{PropGroup}
                     then. Print("Added to show when enough")
                     else. Print("Failed to add to show when enough")
 
                 PropMovementType.Hide_When_Enough =>
-                    if. set PrePurchasePropsMap[PropMovementType.Hide_When_Enough] += array{PrePurchaseProp}
+                    if. set PrePurchasePropsMap[PropMovementType.Hide_When_Enough] += array{PropGroup}
 
                 PropMovementType.Show_When_Not_Enough =>
-                    if. set PrePurchasePropsMap[PropMovementType.Show_When_Not_Enough] += array{PrePurchaseProp}
+                    if. set PrePurchasePropsMap[PropMovementType.Show_When_Not_Enough] += array{PropGroup}
 
                 PropMovementType.Hide_When_Not_Enough =>
-                    if. set PrePurchasePropsMap[PropMovementType.Hide_When_Not_Enough] += array{PrePurchaseProp}
+                    if. set PrePurchasePropsMap[PropMovementType.Hide_When_Not_Enough] += array{PropGroup}
 
                 PropMovementType.Nothing =>
-                    if. set PrePurchasePropsMap[PropMovementType.Nothing] += array{PrePurchaseProp}
+                    if. set PrePurchasePropsMap[PropMovementType.Nothing] += array{PropGroup}
+
+            case(PropGroup.OnPurchaseFunction):
+                PurchaseMovementType.Show =>
+                    if. set PostPurchasePropsMap[PurchaseMovementType.Show] += array{PropGroup}
+
+                PurchaseMovementType.Hide =>
+                    if. set PostPurchasePropsMap[PurchaseMovementType.Hide] += array{PropGroup}
+
+                PurchaseMovementType.Nothing =>
+                    if. set PostPurchasePropsMap[PurchaseMovementType.Nothing] += array{PropGroup}
         race:
             block: 
                 # Wait for the BegunHosting event to be signaled; meaning the prop was successfully purchased
                 BegunHosting.Await()
                 for:
-                     PrePurchaseProp:PropsV2
-                     PrePurchaseProp.HideOnPurchase?
-                     
+                     PrePurchaseProp:PostPurchasePropsMap[PurchaseMovementType.Hide]    
                 do:
                     PrePurchaseProp.Hide(AnimationConfig);
+
+                for:
+                     PrePurchaseProp:PostPurchasePropsMap[PurchaseMovementType.Show]
+                do:
+                    PrePurchaseProp.Show(AnimationConfig);
+
                 return
             block:
                 for:
                      PrePurchaseProp:PropsV2
-                     PrePurchaseProp.HideByDefault?
+                     PrePurchaseProp.HideOnGameStart?
                 do:
                     PrePurchaseProp.Hide(AnimationConfig);
                 loop:
